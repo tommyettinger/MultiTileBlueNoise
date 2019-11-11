@@ -3,7 +3,18 @@
 #include "generatebn_void_cluster.h"
 #include "whitenoise.h"
 #include "convert.h"
+
+#include "dft.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
+#include "histogram.h"
+#include "image.h"
+
 #include "scoped_timer.h"
 
 static const float c_sigma = 1.9f;// 1.5f;
@@ -535,52 +546,112 @@ static void Phase3(std::vector<bool>& binaryPattern, std::vector<float>& LUT, st
     printf("\n");
 }
 
-void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* baseFileName)
+void TestMask(const std::vector<uint8_t>& noise, size_t noiseSize, const char* baseFileName)
+{
+	std::vector<uint8_t> thresholdImage(noise.size());
+
+	for (size_t testIndex = 0; testIndex < THRESHOLD_SAMPLES(); ++testIndex)
+	{
+		float percent = float(testIndex) / float(THRESHOLD_SAMPLES() - 1);
+		uint8_t thresholdValue = FromFloat<uint8_t>(percent);
+		if (thresholdValue == 0)
+			thresholdValue = 1;
+		else if (thresholdValue == 255)
+			thresholdValue = 254;
+
+		for (size_t pixelIndex = 0, pixelCount = noise.size(); pixelIndex < pixelCount; ++pixelIndex)
+			thresholdImage[pixelIndex] = noise[pixelIndex] > thresholdValue ? 255 : 0;
+
+		std::vector<uint8_t> thresholdImageDFT;
+		DFT(thresholdImage, thresholdImageDFT, noiseSize);
+
+		std::vector<uint8_t> noiseAndDFT;
+		size_t noiseAndDFT_width = 0;
+		size_t noiseAndDFT_height = 0;
+		AppendImageHorizontal(thresholdImage, noiseSize, noiseSize, thresholdImageDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
+
+		char fileName[256];
+		sprintf(fileName, "%s_%u.png", baseFileName, thresholdValue);
+		stbi_write_png(fileName, int(noiseAndDFT_width), int(noiseAndDFT_height), 1, noiseAndDFT.data(), 0);
+	}
+}
+
+void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* baseFileName)
+{
+	char fileName[256];
+	sprintf(fileName, "%s.histogram.csv", baseFileName);
+
+	WriteHistogram(noise, fileName);
+	std::vector<uint8_t> noiseDFT;
+	DFT(noise, noiseDFT, noiseSize);
+
+	std::vector<uint8_t> noiseAndDFT;
+	size_t noiseAndDFT_width = 0;
+	size_t noiseAndDFT_height = 0;
+	AppendImageHorizontal(noise, noiseSize, noiseSize, noiseDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
+
+	sprintf(fileName, "%s.png", baseFileName);
+	stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noise.data(), 0);
+
+	sprintf(fileName, "%s_hist.png", baseFileName);
+	stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noiseDFT.data(), 0);
+
+	TestMask(noise, noiseSize, baseFileName);
+}
+
+
+void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* fileNamePattern)
 {
     std::mt19937 rng(GetRNGSeed());
+	for (int counter = 0; counter < 8; counter++)
+	{
+		char baseFileName[256];
+		sprintf(baseFileName, fileNamePattern, counter);
+		std::vector<size_t> ranks(width * width, ~size_t(0));
 
-    std::vector<size_t> ranks(width*width, ~size_t(0));
+		std::vector<bool> initialBinaryPattern;
+		std::vector<bool> binaryPattern;
+		std::vector<float> initialLUT;
+		std::vector<float> LUT;
 
-    std::vector<bool> initialBinaryPattern;
-    std::vector<bool> binaryPattern;
-    std::vector<float> initialLUT;
-    std::vector<float> LUT;
+		if (!useMitchellsBestCandidate)
+		{
+			// make the initial binary pattern and initial LUT
+			MakeInitialBinaryPattern(initialBinaryPattern, width, baseFileName, rng);
+			MakeLUT(initialBinaryPattern, initialLUT, width, true);
 
-    if (!useMitchellsBestCandidate)
-    {
-        // make the initial binary pattern and initial LUT
-        MakeInitialBinaryPattern(initialBinaryPattern, width, baseFileName, rng);
-        MakeLUT(initialBinaryPattern, initialLUT, width, true);
+			// Phase 1: Start with initial binary pattern and remove the tightest cluster until there are none left, entering ranks for those pixels
+			binaryPattern = initialBinaryPattern;
+			LUT = initialLUT;
+			Phase1(binaryPattern, LUT, ranks, width, rng, baseFileName);
+		}
+		else
+		{
+			// replace initial binary pattern and phase 1 with Mitchell's best candidate algorithm, and then making the LUT
+			MitchellsBestCandidate(initialBinaryPattern, ranks, width);
+			MakeLUT(initialBinaryPattern, initialLUT, width, true);
 
-        // Phase 1: Start with initial binary pattern and remove the tightest cluster until there are none left, entering ranks for those pixels
-        binaryPattern = initialBinaryPattern;
-        LUT = initialLUT;
-        Phase1(binaryPattern, LUT, ranks, width, rng, baseFileName);
-    }
-    else
-    {
-        // replace initial binary pattern and phase 1 with Mitchell's best candidate algorithm, and then making the LUT
-        MitchellsBestCandidate(initialBinaryPattern, ranks, width);
-        MakeLUT(initialBinaryPattern, initialLUT, width, true);
+			//SaveBinaryPattern(initialBinaryPattern, width, "out/_blah", 0, -1, -1, -1, -1);
+		}
 
-        //SaveBinaryPattern(initialBinaryPattern, width, "out/_blah", 0, -1, -1, -1, -1);
-    }
+		// Phase 2: Start with initial binary pattern and add points to the largest void until half the pixels are white, entering ranks for those pixels
+		binaryPattern = initialBinaryPattern;
+		LUT = initialLUT;
+		Phase2(binaryPattern, LUT, ranks, width, rng);
 
-    // Phase 2: Start with initial binary pattern and add points to the largest void until half the pixels are white, entering ranks for those pixels
-    binaryPattern = initialBinaryPattern;
-    LUT = initialLUT;
-    Phase2(binaryPattern, LUT, ranks, width, rng);
+		// Phase 3: Continue with the last binary pattern, repeatedly find the tightest cluster of 0s and insert a 1 into them
+		// Note: we do need to re-make the LUT, because we are writing 0s instead of 1s
+		MakeLUT(binaryPattern, LUT, width, false);
+		Phase3(binaryPattern, LUT, ranks, width, rng);
 
-    // Phase 3: Continue with the last binary pattern, repeatedly find the tightest cluster of 0s and insert a 1 into them
-    // Note: we do need to re-make the LUT, because we are writing 0s instead of 1s
-    MakeLUT(binaryPattern, LUT, width, false);
-    Phase3(binaryPattern, LUT, ranks, width, rng);
+		// convert to U8
+		{
+			ScopedTimer timer("Converting to U8", false);
+			blueNoise.resize(width * width);
+			for (size_t index = 0; index < width * width; ++index)
+				blueNoise[index] = uint8_t(ranks[index] * 256 / (width * width));
+		}
+		TestNoise(blueNoise, width, baseFileName);
 
-    // convert to U8
-    {
-        ScopedTimer timer("Converting to U8", false);
-        blueNoise.resize(width*width);
-        for (size_t index = 0; index < width*width; ++index)
-            blueNoise[index] = uint8_t(ranks[index] * 256 / (width*width));
-    }
+	}
 }
