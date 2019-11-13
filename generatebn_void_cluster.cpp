@@ -162,15 +162,15 @@ static void WriteLUTValue(std::vector<float>& LUT, size_t width, bool value, int
     #pragma omp parallel for
     for (int y = 0; y < width; ++y)
     {
-        float disty = abs(float(y) - float(basey));
-        if (disty > float(width / 2))
-            disty = float(width) - disty;
+        float disty = abs(float(y & 63) - float(basey));
+		if (disty > 32.0f)//float(width / 2))
+			disty = 64.0f - disty;//float(width) - disty;
 
         for (size_t x = 0; x < width; ++x)
         {
-            float distx = abs(float(x) - float(basex));
-            if (distx > float(width / 2))
-                distx = float(width) - distx;
+            float distx = abs(float(x & 63) - float(basex));
+            if (distx > 32.0f)//float(width / 2))
+                distx = 64.0f - distx;//float(width) - distx
 
             float distanceSquared = float(distx*distx) + float(disty*disty);
             float energy = exp(-distanceSquared / c_2sigmaSquared) * (value ? 1.0f : -1.0f);
@@ -585,10 +585,10 @@ void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* 
 	std::vector<uint8_t> noiseDFT;
 	DFT(noise, noiseDFT, noiseSize);
 
-	std::vector<uint8_t> noiseAndDFT;
-	size_t noiseAndDFT_width = 0;
-	size_t noiseAndDFT_height = 0;
-	AppendImageHorizontal(noise, noiseSize, noiseSize, noiseDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
+	//std::vector<uint8_t> noiseAndDFT;
+	//size_t noiseAndDFT_width = 0;
+	//size_t noiseAndDFT_height = 0;
+	//AppendImageHorizontal(noise, noiseSize, noiseSize, noiseDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
 
 	sprintf(fileName, "%s.png", baseFileName);
 	stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noise.data(), 0);
@@ -596,62 +596,58 @@ void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* 
 	sprintf(fileName, "%s_hist.png", baseFileName);
 	stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noiseDFT.data(), 0);
 
+#if TEST_MASK()
 	TestMask(noise, noiseSize, baseFileName);
+#endif
 }
 
 
-void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* fileNamePattern)
+void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* baseFileName)
 {
-    std::mt19937 rng(GetRNGSeed());
-	for (int counter = 0; counter < 8; counter++)
+	std::mt19937 rng(GetRNGSeed());
+	std::vector<size_t> ranks(width * width, ~size_t(0));
+
+	std::vector<bool> initialBinaryPattern;
+	std::vector<bool> binaryPattern;
+	std::vector<float> initialLUT;
+	std::vector<float> LUT;
+
+	if (!useMitchellsBestCandidate)
 	{
-		char baseFileName[256];
-		sprintf(baseFileName, fileNamePattern, counter);
-		std::vector<size_t> ranks(width * width, ~size_t(0));
+		// make the initial binary pattern and initial LUT
+		MakeInitialBinaryPattern(initialBinaryPattern, width, baseFileName, rng);
+		MakeLUT(initialBinaryPattern, initialLUT, width, true);
 
-		std::vector<bool> initialBinaryPattern;
-		std::vector<bool> binaryPattern;
-		std::vector<float> initialLUT;
-		std::vector<float> LUT;
-
-		if (!useMitchellsBestCandidate)
-		{
-			// make the initial binary pattern and initial LUT
-			MakeInitialBinaryPattern(initialBinaryPattern, width, baseFileName, rng);
-			MakeLUT(initialBinaryPattern, initialLUT, width, true);
-
-			// Phase 1: Start with initial binary pattern and remove the tightest cluster until there are none left, entering ranks for those pixels
-			binaryPattern = initialBinaryPattern;
-			LUT = initialLUT;
-			Phase1(binaryPattern, LUT, ranks, width, rng, baseFileName);
-		}
-		else
-		{
-			// replace initial binary pattern and phase 1 with Mitchell's best candidate algorithm, and then making the LUT
-			MitchellsBestCandidate(initialBinaryPattern, ranks, width);
-			MakeLUT(initialBinaryPattern, initialLUT, width, true);
-
-			//SaveBinaryPattern(initialBinaryPattern, width, "out/_blah", 0, -1, -1, -1, -1);
-		}
-
-		// Phase 2: Start with initial binary pattern and add points to the largest void until half the pixels are white, entering ranks for those pixels
+		// Phase 1: Start with initial binary pattern and remove the tightest cluster until there are none left, entering ranks for those pixels
 		binaryPattern = initialBinaryPattern;
 		LUT = initialLUT;
-		Phase2(binaryPattern, LUT, ranks, width, rng);
-
-		// Phase 3: Continue with the last binary pattern, repeatedly find the tightest cluster of 0s and insert a 1 into them
-		// Note: we do need to re-make the LUT, because we are writing 0s instead of 1s
-		MakeLUT(binaryPattern, LUT, width, false);
-		Phase3(binaryPattern, LUT, ranks, width, rng);
-
-		// convert to U8
-		{
-			ScopedTimer timer("Converting to U8", false);
-			blueNoise.resize(width * width);
-			for (size_t index = 0; index < width * width; ++index)
-				blueNoise[index] = uint8_t(ranks[index] * 256 / (width * width));
-		}
-		TestNoise(blueNoise, width, baseFileName);
-
+		Phase1(binaryPattern, LUT, ranks, width, rng, baseFileName);
 	}
+	else
+	{
+		// replace initial binary pattern and phase 1 with Mitchell's best candidate algorithm, and then making the LUT
+		MitchellsBestCandidate(initialBinaryPattern, ranks, width);
+		MakeLUT(initialBinaryPattern, initialLUT, width, true);
+
+		//SaveBinaryPattern(initialBinaryPattern, width, "out/_blah", 0, -1, -1, -1, -1);
+	}
+
+	// Phase 2: Start with initial binary pattern and add points to the largest void until half the pixels are white, entering ranks for those pixels
+	binaryPattern = initialBinaryPattern;
+	LUT = initialLUT;
+	Phase2(binaryPattern, LUT, ranks, width, rng);
+
+	// Phase 3: Continue with the last binary pattern, repeatedly find the tightest cluster of 0s and insert a 1 into them
+	// Note: we do need to re-make the LUT, because we are writing 0s instead of 1s
+	MakeLUT(binaryPattern, LUT, width, false);
+	Phase3(binaryPattern, LUT, ranks, width, rng);
+
+	// convert to U8
+	{
+		ScopedTimer timer("Converting to U8", false);
+		blueNoise.resize(width * width);
+		for (size_t index = 0; index < width * width; ++index)
+			blueNoise[index] = uint8_t(ranks[index] * 256 / (width * width));
+	}
+	TestNoise(blueNoise, width, baseFileName);
 }

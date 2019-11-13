@@ -13,14 +13,14 @@ int main(int argc, char** argv)
 {
 	// generate blue noise using void and cluster
 	{
-		static size_t c_width = 64;
+		static size_t c_width = 256;
 
 		std::vector<uint8_t> noise;
 
 		{
 //			ScopedTimer timer("Blue noise by void and cluster");
 
-			GenerateBN_Void_Cluster(noise, c_width, false, "out/blueVC_%i");
+			GenerateBN_Void_Cluster(noise, c_width, false, "out/blue");
 		}
 		//TestNoise(noise, c_width, "out/blueVC_%i");
 	}
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     //    TestNoise(noise, width, "out/blueVC_2");
     //}
 	
-	system("pause");
+	//system("pause");
 
     return 0;
 }

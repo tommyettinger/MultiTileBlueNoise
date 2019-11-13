@@ -9,3 +9,4 @@
 
 #define SAVE_VOIDCLUSTER_INITIALBP() false
 #define SAVE_VOIDCLUSTER_PHASE1() false
+#define TEST_MASK() false
