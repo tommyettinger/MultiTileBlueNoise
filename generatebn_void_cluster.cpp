@@ -162,20 +162,25 @@ static void WriteLUTValue(std::vector<float>& LUT, size_t width, bool value, int
     #pragma omp parallel for
     for (int y = 0; y < width; ++y)
     {
-        float disty = abs(float(y & 63) - float(basey));
-		if (disty > 32.0f)//float(width / 2))
-			disty = 64.0f - disty;//float(width) - disty;
+        float disty = abs(float(y) - float(basey));
+		if (disty > float(width) * 0.875f)
+			disty = float(width) - disty;
+		else if (disty > float(width) * 0.375f)
+			disty = abs(float(width) * 0.75f - disty);
+
 
         for (size_t x = 0; x < width; ++x)
         {
-            float distx = abs(float(x & 63) - float(basex));
-            if (distx > 32.0f)//float(width / 2))
-                distx = 64.0f - distx;//float(width) - distx
+            float distx = abs(float(x) - float(basex));
+			if (distx > float(width) * 0.625f)
+				distx = float(width) - distx;
+			else if (distx > float(width) * 0.125f)
+				distx = abs(float(width) * 0.25f - distx);
 
             float distanceSquared = float(distx*distx) + float(disty*disty);
             float energy = exp(-distanceSquared / c_2sigmaSquared) * (value ? 1.0f : -1.0f);
-            LUT[y*width + x] += energy;
-        }
+			LUT[y * width + x] += energy;
+		}
     }
 }
 
