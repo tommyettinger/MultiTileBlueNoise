@@ -163,14 +163,43 @@ static void WriteLUTValue(std::vector<float>& LUT, size_t width, bool value, int
     for (int y = 0; y < width; ++y)
     {
         float disty = abs(float(y) - float(basey));
-		if (disty >= float(width) * 0.875f)
-			disty = std::min(float(width) - disty, disty);
-		else if (float(y) < float(width) * 0.375f || float(basey) < float(width) * 0.375f)
-			disty = std::min(abs(float(width) * 0.25f - y)+ abs(float(width) * 0.25f - basey), disty);
-		else if (float(y) < float(width) * 0.625f || float(basey) < float(width) * 0.625f)
-			disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty);
-		else if (float(y) < float(width) * 0.875f || float(basey) < float(width) * 0.875f)
-			disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty);
+
+		if (float(basey) < float(width) * 0.125f)
+			disty = std::min(std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 1.0f - basey), disty),
+				abs(float(width) * 0.25f - y) + abs(float(width) * 1.0f - basey));
+
+		else if (float(basey) >= float(width) * 0.125f && float(basey) < float(width) * 0.25f)
+			disty = std::min(std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty),
+				abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey));
+		else if (float(basey) >= float(width) * 0.25f && float(basey) < float(width) * 0.375f)
+			disty = std::min(std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty),
+				abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey));
+
+		else if (float(basey) >= float(width) * 0.375f && float(basey) < float(width) * 0.5f)
+			disty = std::min(std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty),
+				abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey));
+		else if (float(basey) >= float(width) * 0.5f && float(basey) < float(width) * 0.625f)
+			disty = std::min(std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty),
+				abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey));
+
+		else if (float(basey) >= float(width) * 0.625f && float(basey) < float(width) * 0.75f)
+			disty = std::min(std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty),
+				abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey));
+		else if (float(basey) >= float(width) * 0.75f && float(basey) < float(width) * 0.875f)
+			disty = std::min(std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty),
+				abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey));
+
+		else if (float(basey) >= float(width) * 0.875f)
+			disty = std::min(std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 1.0f - basey), disty),
+				abs(float(width) * 0.25f - y) + abs(float(width) * 1.0f - basey));
+
+
+//		if (float(y) < float(width) * 0.375f || float(basey) < float(width) * 0.375f)
+//			disty = std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty);
+//		if (float(y) < float(width) * 0.625f || float(basey) < float(width) * 0.625f)
+//			disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty);
+//		if (float(y) < float(width) * 0.875f || float(basey) < float(width) * 0.875f)
+//			disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty);
 
 //		if (disty > float(width) * 0.5f)
 //			disty = float(width) - disty;
@@ -178,14 +207,43 @@ static void WriteLUTValue(std::vector<float>& LUT, size_t width, bool value, int
         for (size_t x = 0; x < width; ++x)
         {
             float distx = abs(float(x) - float(basex));
-			if (distx >= float(width) * 0.875f)
-				distx = std::min(float(width) - distx, distx);
-			else if (float(x) < float(width) * 0.375f || float(basex) < float(width) * 0.375f)
-				distx = std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx);
-			else if (float(x) < float(width) * 0.625f || float(basex) < float(width) * 0.625f)
-				distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx);
-			else if (float(x) < float(width) * 0.875f || float(basex) < float(width) * 0.875f)
-				distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx);
+			if (float(basex) < float(width) * 0.125f)
+				distx = std::min(std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 1.0f - basex), distx),
+					abs(float(width) * 0.25f - x) + abs(float(width) * 1.0f - basex));
+
+			else if (float(basex) >= float(width) * 0.125f && float(basex) < float(width) * 0.25f)
+				distx = std::min(std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx),
+					abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex));
+			else if (float(basex) >= float(width) * 0.25f && float(basex) < float(width) * 0.375f)
+				distx = std::min(std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx),
+					abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex));
+
+			else if (float(basex) >= float(width) * 0.375f && float(basex) < float(width) * 0.5f)
+				distx = std::min(std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx),
+					abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex));
+			else if (float(basex) >= float(width) * 0.5f && float(basex) < float(width) * 0.625f)
+				distx = std::min(std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx),
+					abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex));
+
+			else if (float(basex) >= float(width) * 0.625f && float(basex) < float(width) * 0.75f)
+				distx = std::min(std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx),
+					abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex));
+			else if (float(basex) >= float(width) * 0.75f && float(basex) < float(width) * 0.875f)
+				distx = std::min(std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx),
+					abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex));
+
+			else if (float(basex) >= float(width) * 0.875f)
+				distx = std::min(std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 1.0f - basex), distx),
+					abs(float(width) * 0.25f - x) + abs(float(width) * 1.0f - basex));
+
+//			if (distx >= float(width) * 0.875f)
+//				distx = std::min(float(width) - distx, distx);
+//			if (float(x) < float(width) * 0.375f || float(basex) < float(width) * 0.375f)
+//				distx = std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx);
+//			if (float(x) < float(width) * 0.625f || float(basex) < float(width) * 0.625f)
+//				distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx);
+//			if (float(x) < float(width) * 0.875f || float(basex) < float(width) * 0.875f)
+//				distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx);
 
 //			if (distx > float(width) * 0.5f)
 //				distx = float(width) - distx;
