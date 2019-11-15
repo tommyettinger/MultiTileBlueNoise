@@ -17,7 +17,7 @@
 
 #include "scoped_timer.h"
 
-static const float c_sigma = 1.9f;// 1.5f;
+static const float c_sigma = 2.6180339887498949f;// 1.9f;// 1.5f;
 static const float c_2sigmaSquared = 2.0f * c_sigma * c_sigma;
 static const int c_3sigmaint = int(ceil(c_sigma * 3.0f));
 
