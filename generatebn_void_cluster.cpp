@@ -359,7 +359,16 @@ static size_t VanDerCorput(int base, int index)
 		denominator *= base;
 	}
 	return size_t(res * 64.0f);
+}
 
+static size_t Roberts1(uint64_t index)
+{
+	return size_t(index * 0xC13FA9A902A6328FULL >> 58);
+}
+
+static size_t Roberts2(uint64_t index)
+{
+	return size_t(index * 0x91E10DA5C79E7B1DULL >> 58);
 }
 
 static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t width, const char* baseFileName, std::mt19937& rng)
@@ -382,10 +391,10 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
         WriteLUTValue(LUT, width, true, int(pixel % width), int(pixel / width));
     }
 #else
-	for (size_t index = 1; index <= 711; ++index)
+	for (size_t index = 1; index <= 19; ++index)
 	{
 		size_t x = VanDerCorput(3, index);
-		size_t y = VanDerCorput(11, index);
+		size_t y = VanDerCorput(5, index);
 		if (x >= y && x < 63 - y) // bottom edge
 		{
 			for (size_t xx = 0; xx < 256; xx+=64)
@@ -427,8 +436,10 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
 			}
 		}
 
-		x = VanDerCorput(5, index);
-		y = VanDerCorput(7, index);
+//		x = VanDerCorput(2, index);
+//		y = VanDerCorput(7, index);
+		x = Roberts1(uint64_t(index));
+		y = Roberts2(uint64_t(index));
 		if (x >= y && x < 63 - y) // bottom edge
 		{
 			for (size_t xx = 0; xx < 256; xx += 64)
