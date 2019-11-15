@@ -164,89 +164,117 @@ static void WriteLUTValue(std::vector<float>& LUT, size_t width, bool value, int
     {
         float disty = abs(float(y) - float(basey));
 
-		if (float(basey) < float(width) * 0.125f)
-			disty = std::min(std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 1.0f - basey), disty),
-				abs(float(width) * 0.25f - y) + abs(float(width) * 1.0f - basey));
+		if (disty > float(width) * 0.5f)
+			disty = float(width) - disty;
 
-		else if (float(basey) >= float(width) * 0.125f && float(basey) < float(width) * 0.25f)
-			disty = std::min(std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty),
-				abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey));
-		else if (float(basey) >= float(width) * 0.25f && float(basey) < float(width) * 0.375f)
-			disty = std::min(std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty),
-				abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey));
-
-		else if (float(basey) >= float(width) * 0.375f && float(basey) < float(width) * 0.5f)
-			disty = std::min(std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty),
-				abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey));
-		else if (float(basey) >= float(width) * 0.5f && float(basey) < float(width) * 0.625f)
-			disty = std::min(std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty),
-				abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey));
-
-		else if (float(basey) >= float(width) * 0.625f && float(basey) < float(width) * 0.75f)
-			disty = std::min(std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty),
-				abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey));
-		else if (float(basey) >= float(width) * 0.75f && float(basey) < float(width) * 0.875f)
-			disty = std::min(std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty),
-				abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey));
-
-		else if (float(basey) >= float(width) * 0.875f)
-			disty = std::min(std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 1.0f - basey), disty),
-				abs(float(width) * 0.25f - y) + abs(float(width) * 1.0f - basey));
-
-
-//		if (float(y) < float(width) * 0.375f || float(basey) < float(width) * 0.375f)
+//		if (float(basey) < float(width) * 0.125f)
+//		{
+//			disty = std::min(float(y) + float(basey), disty);
+//			disty = std::min(abs(float(width) * 1.0f - y) + float(basey), disty);
+//			if(y >= float(width) * 0.125f && y < float(width) * 0.25f)
+//				disty = std::min(abs(float(width) * 0.25f - y) + float(basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.125f && float(basey) < float(width) * 0.25f)
+//		{
 //			disty = std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty);
-//		if (float(y) < float(width) * 0.625f || float(basey) < float(width) * 0.625f)
+//			if (y < float(width) * 0.125f)
+//				disty = std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.25f && float(basey) < float(width) * 0.375f)
+//		{
+//			disty = std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 0.25f - basey), disty);
+//			if (y >= float(width) * 0.875f)
+//				disty = std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 0.25f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.375f && float(basey) < float(width) * 0.5f)
+//		{
 //			disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty);
-//		if (float(y) < float(width) * 0.875f || float(basey) < float(width) * 0.875f)
+//			if (y >= float(width) * 0.75f && y < float(width) * 0.875f)
+//				disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.5f && float(basey) < float(width) * 0.625f)
+//		{
+//			disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.5f - basey), disty);
+//			if (y >= float(width) * 0.625f && y < float(width) * 0.75f)
+//				disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.5f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.625f && float(basey) < float(width) * 0.75f)
+//		{
 //			disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty);
-
-//		if (disty > float(width) * 0.5f)
-//			disty = float(width) - disty;
+//			if (y >= float(width) * 0.5f && y < float(width) * 0.625f)
+//				disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.75f && float(basey) < float(width) * 0.875f)
+//		{
+//			disty = std::min(abs(float(width) * 0.75f - y) + abs(float(width) * 0.75f - basey), disty);
+//			if (y >= float(width) * 0.375f && y < float(width) * 0.5f)
+//				disty = std::min(abs(float(width) * 0.5f - y) + abs(float(width) * 0.75f - basey), disty);
+//		}
+//		else if (float(basey) >= float(width) * 0.875f)
+//		{
+//			disty = std::min(abs(float(width) * 1.0f - y) + abs(float(width) * 1.0f - basey), disty);
+//			disty = std::min(float(y) + abs(float(width) * 1.0f - basey), disty);
+//			if (y >= float(width) * 0.25f && y < float(width) * 0.375f)
+//				disty = std::min(abs(float(width) * 0.25f - y) + abs(float(width) * 1.0f - basey), disty);
+//		}
 
         for (size_t x = 0; x < width; ++x)
         {
             float distx = abs(float(x) - float(basex));
-			if (float(basex) < float(width) * 0.125f)
-				distx = std::min(std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 1.0f - basex), distx),
-					abs(float(width) * 0.25f - x) + abs(float(width) * 1.0f - basex));
+			if (distx > float(width) * 0.5f)
+				distx = float(width) - distx;
 
-			else if (float(basex) >= float(width) * 0.125f && float(basex) < float(width) * 0.25f)
-				distx = std::min(std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx),
-					abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex));
-			else if (float(basex) >= float(width) * 0.25f && float(basex) < float(width) * 0.375f)
-				distx = std::min(std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx),
-					abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex));
-
-			else if (float(basex) >= float(width) * 0.375f && float(basex) < float(width) * 0.5f)
-				distx = std::min(std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx),
-					abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex));
-			else if (float(basex) >= float(width) * 0.5f && float(basex) < float(width) * 0.625f)
-				distx = std::min(std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx),
-					abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex));
-
-			else if (float(basex) >= float(width) * 0.625f && float(basex) < float(width) * 0.75f)
-				distx = std::min(std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx),
-					abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex));
-			else if (float(basex) >= float(width) * 0.75f && float(basex) < float(width) * 0.875f)
-				distx = std::min(std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx),
-					abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex));
-
-			else if (float(basex) >= float(width) * 0.875f)
-				distx = std::min(std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 1.0f - basex), distx),
-					abs(float(width) * 0.25f - x) + abs(float(width) * 1.0f - basex));
-
-//			if (distx >= float(width) * 0.875f)
-//				distx = std::min(float(width) - distx, distx);
-//			if (float(x) < float(width) * 0.375f || float(basex) < float(width) * 0.375f)
+//			if (float(basex) < float(width) * 0.125f)
+//			{
+//				distx = std::min(float(x) + float(basex), distx);
+//				distx = std::min(abs(float(width) * 1.0f - x) + float(basex), distx);
+//				if (x >= float(width) * 0.125f && x < float(width) * 0.25f)
+//					distx = std::min(abs(float(width) * 0.25f - x) + float(basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.125f && float(basex) < float(width) * 0.25f)
+//			{
 //				distx = std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx);
-//			if (float(x) < float(width) * 0.625f || float(basex) < float(width) * 0.625f)
+//				if (x < float(width) * 0.125f)
+//					distx = std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.25f && float(basex) < float(width) * 0.375f)
+//			{
+//				distx = std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 0.25f - basex), distx);
+//				if (x >= float(width) * 0.875f)
+//					distx = std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 0.25f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.375f && float(basex) < float(width) * 0.5f)
+//			{
 //				distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx);
-//			if (float(x) < float(width) * 0.875f || float(basex) < float(width) * 0.875f)
+//				if (x >= float(width) * 0.75f && x < float(width) * 0.875f)
+//					distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.5f && float(basex) < float(width) * 0.625f)
+//			{
+//				distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.5f - basex), distx);
+//				if (x >= float(width) * 0.625f && x < float(width) * 0.75f)
+//					distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.5f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.625f && float(basex) < float(width) * 0.75f)
+//			{
 //				distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx);
+//				if (x >= float(width) * 0.5f && x < float(width) * 0.625f)
+//					distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.75f && float(basex) < float(width) * 0.875f)
+//			{
+//				distx = std::min(abs(float(width) * 0.75f - x) + abs(float(width) * 0.75f - basex), distx);
+//				if (x >= float(width) * 0.375f && x < float(width) * 0.5f)
+//					distx = std::min(abs(float(width) * 0.5f - x) + abs(float(width) * 0.75f - basex), distx);
+//			}
+//			else if (float(basex) >= float(width) * 0.875f)
+//			{
+//				distx = std::min(abs(float(width) * 1.0f - x) + abs(float(width) * 1.0f - basex), distx);
+//				distx = std::min(float(x) + abs(float(width) * 1.0f - basex), distx);
+//				if (x >= float(width) * 0.25f && x < float(width) * 0.375f)
+//					distx = std::min(abs(float(width) * 0.25f - x) + abs(float(width) * 1.0f - basex), distx);
+//			}
 
-//			if (distx > float(width) * 0.5f)
-//				distx = float(width) - distx;
 
             float distanceSquared = float(distx*distx) + float(disty*disty);
             float energy = exp(-distanceSquared / c_2sigmaSquared) * (value ? 1.0f : -1.0f);
@@ -315,11 +343,24 @@ static void SaveBinaryPattern(const std::vector<bool>& binaryPattern, size_t wid
     }
 
     char fileName[256];
-    sprintf(fileName, "%s%i.png", baseFileName, iterationCount);
+    sprintf(fileName, "%s_base_%i.png", baseFileName, iterationCount);
     stbi_write_png(fileName, int(width*c_scale), int(width*c_scale), 3, binaryPatternImage.data(), 0);
 }
 
 #endif
+
+static size_t VanDerCorput(int base, int index)
+{
+	double denominator = base, res = 0.0;
+	while (index > 0)
+	{
+		res += (index % base) / denominator;
+		index /= base;
+		denominator *= base;
+	}
+	return size_t(res * 64.0f);
+
+}
 
 static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t width, const char* baseFileName, std::mt19937& rng)
 {
@@ -331,6 +372,8 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
     LUT.resize(width*width, 0.0f);
 
     binaryPattern.resize(width*width, false);
+
+#if RANDOM_INITIAL()
     size_t ones = size_t(float(width*width) * 0.1f); // start 10% of the pixels as white
     for (size_t index = 0; index < ones; ++index)
     {
@@ -338,7 +381,96 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
         binaryPattern[pixel] = true;
         WriteLUTValue(LUT, width, true, int(pixel % width), int(pixel / width));
     }
+#else
+	for (size_t index = 1; index <= 711; ++index)
+	{
+		size_t x = VanDerCorput(3, index);
+		size_t y = VanDerCorput(11, index);
+		if (x >= y && x < 63 - y) // bottom edge
+		{
+			for (size_t xx = 0; xx < 256; xx+=64)
+			{
+				binaryPattern[xx + x + y * 256] = true;
+				binaryPattern[xx + x + (y + 64) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y);
+				WriteLUTValue(LUT, width, true, xx + x, y + 64);
+			}
+		}
+		else if (x < y && x >= 63 - y) // top edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + y * 256] = true;
+				binaryPattern[xx + x + (y + 192) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y);
+				WriteLUTValue(LUT, width, true, xx + x, y + 192);
+			}
+		}
+		else if (x < y && x < 63 - y) // left edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[x + (yy + y) * 256] = true;
+				binaryPattern[64 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x, yy + y);
+				WriteLUTValue(LUT, width, true, x + 64, yy + y);
+			}
+		}
+		else // right edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[x + (yy + y) * 256] = true;
+				binaryPattern[192 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x, yy + y);
+				WriteLUTValue(LUT, width, true, x + 192, yy + y);
+			}
+		}
 
+		x = VanDerCorput(5, index);
+		y = VanDerCorput(7, index);
+		if (x >= y && x < 63 - y) // bottom edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + (y + 128) * 256] = true;
+				binaryPattern[xx + x + (y + 192) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y + 128);
+				WriteLUTValue(LUT, width, true, xx + x, y + 192);
+			}
+		}
+		else if (x < y && x >= 63 - y) // top edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + (y + 64) * 256] = true;
+				binaryPattern[xx + x + (y + 128) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y + 64);
+				WriteLUTValue(LUT, width, true, xx + x, y + 128);
+			}
+		}
+		else if (x < y && x < 63 - y) // left edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[128 + x + (yy + y) * 256] = true;
+				binaryPattern[192 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x + 128, yy + y);
+				WriteLUTValue(LUT, width, true, x + 192, yy + y);
+			}
+		}
+		else // right edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[64 + x + (yy + y) * 256] = true;
+				binaryPattern[128 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x + 64, yy + y);
+				WriteLUTValue(LUT, width, true, x + 128, yy + y);
+			}
+		}
+	}
+#endif
     int iterationCount = 0;
     while (1)
     {
