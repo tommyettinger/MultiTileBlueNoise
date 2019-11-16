@@ -17,7 +17,7 @@
 
 #include "scoped_timer.h"
 
-static const float c_sigma = 2.6180339887498949f;// 1.9f;// 1.5f;
+static const float c_sigma = 3.5f;// 3.6180339887498949f;// +0.7548776662466927f;// 1.9f;// 1.5f;
 static const float c_2sigmaSquared = 2.0f * c_sigma * c_sigma;
 static const int c_3sigmaint = int(ceil(c_sigma * 3.0f));
 
@@ -391,10 +391,13 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
         WriteLUTValue(LUT, width, true, int(pixel % width), int(pixel / width));
     }
 #else
-	for (size_t index = 1; index <= 19; ++index)
+	size_t x, y;
+	for (size_t index = 1; index <= 17; ++index)
 	{
-		size_t x = VanDerCorput(3, index);
-		size_t y = VanDerCorput(5, index);
+//		x = VanDerCorput(3, index);
+//		y = VanDerCorput(5, index);
+		x = Roberts1(uint64_t(index));
+		y = Roberts2(uint64_t(index));
 		if (x >= y && x < 63 - y) // bottom edge
 		{
 			for (size_t xx = 0; xx < 256; xx+=64)
@@ -438,8 +441,10 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
 
 //		x = VanDerCorput(2, index);
 //		y = VanDerCorput(7, index);
-		x = Roberts1(uint64_t(index));
-		y = Roberts2(uint64_t(index));
+//		x = VanDerCorput(3, index + 24);
+//		y = VanDerCorput(5, index + 24);
+		x = Roberts1(uint64_t(index + 32));
+		y = Roberts2(uint64_t(index + 32));
 		if (x >= y && x < 63 - y) // bottom edge
 		{
 			for (size_t xx = 0; xx < 256; xx += 64)
