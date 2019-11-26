@@ -17,7 +17,7 @@
 
 #include "scoped_timer.h"
 
-static const float c_sigma = 3.5f;// 3.6180339887498949f;// +0.7548776662466927f;// 1.9f;// 1.5f;
+static const float c_sigma = 1.9f;// 3.5f;// 3.6180339887498949f;// +0.7548776662466927f;// 1.9f;// 1.5f;
 static const float c_2sigmaSquared = 2.0f * c_sigma * c_sigma;
 static const int c_3sigmaint = int(ceil(c_sigma * 3.0f));
 
@@ -349,6 +349,158 @@ static void SaveBinaryPattern(const std::vector<bool>& binaryPattern, size_t wid
 
 #endif
 
+struct Point
+{
+	size_t x;
+	size_t y;
+};
+typedef std::vector<Point> TPoints;
+typedef std::vector<TPoints> TPointGrid;
+
+static bool DistanceSqToClosestPoint(const TPoints& points, const Point& point, float& minDistSq, size_t width)
+{
+	if (points.size() == 0)
+		return false;
+
+	// calculate the closest distance from this point to an existing sample
+	for (const Point& p : points)
+	{
+		float distx = std::abs(float(p.x) - float(point.x));
+		float disty = std::abs(float(p.y) - float(point.y));
+
+		if (distx > float(width) / 2.0f)
+			distx = float(width) - distx;
+
+		if (disty > float(width) / 2.0f)
+			disty = float(width) - disty;
+
+		float distSq = distx * distx + disty * disty;
+		if (distSq < minDistSq)
+			minDistSq = distSq;
+	}
+	return true;
+}
+
+static float DistanceSqToClosestPoint(const TPointGrid& grid, size_t cellCount, size_t cellSize, const Point& point, size_t width)
+{
+	const int basex = int(point.x / cellSize);
+	const int basey = int(point.y / cellSize);
+
+	const int maxRadius = int(cellCount / 2);
+
+	float minDistSq = FLT_MAX;
+	bool foundAPoint = false;
+	bool didAnExtraRing = false;
+
+	for (int radius = 0; radius <= maxRadius; ++radius)
+	{
+		// top and bottom rows
+		{
+			for (int offsetX = -radius; offsetX <= radius; ++offsetX)
+			{
+				int x = int(basex + offsetX + cellCount) % int(cellCount);
+
+				int offsetY = -radius;
+				int y = int(basey + offsetY + cellCount) % int(cellCount);
+				foundAPoint |= DistanceSqToClosestPoint(grid[y * cellCount + x], point, minDistSq, width);
+
+				offsetY = radius;
+				y = int(basey + offsetY + cellCount) % int(cellCount);
+				foundAPoint |= DistanceSqToClosestPoint(grid[y * cellCount + x], point, minDistSq, width);
+			}
+		}
+
+		// left and right
+		{
+			for (int offsetY = -radius + 1; offsetY <= radius - 1; ++offsetY)
+			{
+				int y = int(basey + offsetY + cellCount) % int(cellCount);
+
+				int offsetX = -radius;
+				int x = int(basex + offsetX + cellCount) % int(cellCount);
+				foundAPoint |= DistanceSqToClosestPoint(grid[y * cellCount + x], point, minDistSq, width);
+
+				offsetX = +radius;
+				x = int(basex + offsetX + cellCount) % int(cellCount);
+				foundAPoint |= DistanceSqToClosestPoint(grid[y * cellCount + x], point, minDistSq, width);
+			}
+		}
+
+		// we stop when we've found a point, then do another ring to make sure there isn't something closer to what we found.
+		if (foundAPoint)
+		{
+			if (didAnExtraRing)
+				break;
+			else
+				didAnExtraRing = true;
+		}
+	}
+
+	return minDistSq;
+}
+
+static void AddPointToPointGrid(TPointGrid& grid, size_t cellCount, size_t cellSize, const Point& point)
+{
+	Point cell;
+	cell.x = point.x / cellSize;
+	cell.y = point.y / cellSize;
+	grid[cell.y * cellCount + cell.x].push_back(point);
+}
+
+// This replaces "Initial Binary Pattern" and "Phase 1" in the void and cluster algorithm.
+// Initial binary pattern makes blue noise distributed points.
+// Phase 1 makes them be progressive, so any points from 0 to N are blue noise.
+// Mitchell's best candidate algorithm makes progressive blue noise so can be used instead of those 2 steps.
+// https://blog.demofox.org/2017/10/20/generating-blue-noise-sample-points-with-mitchells-best-candidate-algorithm/
+static void MitchellsBestCandidate(std::vector<bool>& binaryPattern, std::vector<size_t>& ranks, size_t width, std::mt19937 rng)
+{
+	ScopedTimer timer("Mitchells Best Candidate", false);
+
+	std::uniform_int_distribution<size_t> dist(0, width * width - 1);
+
+	binaryPattern.resize(width * width, false);
+	ranks.resize(width * width, ~size_t(0));
+
+	static const size_t gridCellCount = 32;
+	TPointGrid grid(gridCellCount * gridCellCount);
+	const size_t gridCellSize = width / gridCellCount;
+
+	size_t ones = size_t(float(width * width) * 0.1f);
+	for (size_t i = 0; i < ones; ++i)
+	{
+		printf("\r%i%%", int(100.0f * float(i) / float(ones - 1)));
+
+		// we scale up the candidates each iteration like in the paper, to keep frequency behavior consistent
+		size_t numCandidates = i + 1;
+
+		// keep the candidate that is farthest from the closest existing point
+		float bestDistanceSq = 0.0f;
+		Point best;
+		for (size_t candidate = 0; candidate < numCandidates; ++candidate)
+		{
+			size_t index = dist(rng);
+			Point c;
+			c.x = index % width;
+			c.y = index / width;
+
+			float minDistSq = DistanceSqToClosestPoint(grid, gridCellCount, gridCellSize, c, width);
+
+			if (minDistSq > bestDistanceSq)
+			{
+				bestDistanceSq = minDistSq;
+				best = c;
+			}
+		}
+
+		// take the best candidate
+		binaryPattern[best.y * width + best.x] = true;
+		ranks[best.y * width + best.x] = i;
+		AddPointToPointGrid(grid, gridCellCount, gridCellSize, best);
+	}
+	printf("\n");
+}
+
+
 static size_t VanDerCorput(int base, int index)
 {
 	double denominator = base, res = 0.0;
@@ -390,7 +542,7 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
         binaryPattern[pixel] = true;
         WriteLUTValue(LUT, width, true, int(pixel % width), int(pixel / width));
     }
-#else
+#elif VDC_INITIAL()
 	size_t x, y;
 	for (size_t index = 17; index <= 32; ++index)
 	{
@@ -488,6 +640,109 @@ static void MakeInitialBinaryPattern(std::vector<bool>& binaryPattern, size_t wi
 			}
 		}
 	}
+#else
+std::vector<size_t> rank1(64 * 64, ~size_t(0));
+std::vector<size_t> rank2(64 * 64, ~size_t(0));
+std::vector<bool> ibp1, ibp2;
+MitchellsBestCandidate(ibp1, rank1, 64, rng);
+for (size_t x = 0; x < 64; x++)
+{
+	for (size_t y = 0; y < 64; y++)
+	{
+		if (rank1[x + y * 64] > 23)
+			continue;
+		if (x >= y && x < 63 - y) // bottom edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + y * 256] = true;
+				binaryPattern[xx + x + (y + 64) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y);
+				WriteLUTValue(LUT, width, true, xx + x, y + 64);
+			}
+		}
+		else if (x < y && x >= 63 - y) // top edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + y * 256] = true;
+				binaryPattern[xx + x + (y + 192) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y);
+				WriteLUTValue(LUT, width, true, xx + x, y + 192);
+			}
+		}
+		else if (x < y && x < 63 - y) // left edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[x + (yy + y) * 256] = true;
+				binaryPattern[64 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x, yy + y);
+				WriteLUTValue(LUT, width, true, x + 64, yy + y);
+			}
+		}
+		else // right edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[x + (yy + y) * 256] = true;
+				binaryPattern[192 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x, yy + y);
+				WriteLUTValue(LUT, width, true, x + 192, yy + y);
+			}
+		}
+	}
+}
+MitchellsBestCandidate(ibp2, rank2, 64, rng);
+for (size_t x = 0; x < 64; x++)
+{
+	for (size_t y = 0; y < 64; y++)
+	{
+		if (rank2[x + y * 64] > 42)
+			continue;
+		if (x >= y && x < 63 - y) // bottom edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + (y + 128) * 256] = true;
+				binaryPattern[xx + x + (y + 192) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y + 128);
+				WriteLUTValue(LUT, width, true, xx + x, y + 192);
+			}
+		}
+		else if (x < y && x >= 63 - y) // top edge
+		{
+			for (size_t xx = 0; xx < 256; xx += 64)
+			{
+				binaryPattern[xx + x + (y + 64) * 256] = true;
+				binaryPattern[xx + x + (y + 128) * 256] = true;
+				WriteLUTValue(LUT, width, true, xx + x, y + 64);
+				WriteLUTValue(LUT, width, true, xx + x, y + 128);
+			}
+		}
+		else if (x < y && x < 63 - y) // left edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[128 + x + (yy + y) * 256] = true;
+				binaryPattern[192 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x + 128, yy + y);
+				WriteLUTValue(LUT, width, true, x + 192, yy + y);
+			}
+		}
+		else // right edge
+		{
+			for (size_t yy = 0; yy < 256; yy += 64)
+			{
+				binaryPattern[64 + x + (yy + y) * 256] = true;
+				binaryPattern[128 + x + (yy + y) * 256] = true;
+				WriteLUTValue(LUT, width, true, x + 64, yy + y);
+				WriteLUTValue(LUT, width, true, x + 128, yy + y);
+			}
+		}
+	}
+}
+
 #endif
     int iterationCount = 0;
     while (1)
@@ -559,157 +814,6 @@ static void Phase1(std::vector<bool>& binaryPattern, std::vector<float>& LUT, st
     printf("\n");
 }
 
-struct Point
-{
-    size_t x;
-    size_t y;
-};
-typedef std::vector<Point> TPoints;
-typedef std::vector<TPoints> TPointGrid;
-
-static bool DistanceSqToClosestPoint(const TPoints& points, const Point& point, float& minDistSq, size_t width)
-{
-    if (points.size() == 0)
-        return false;
-
-    // calculate the closest distance from this point to an existing sample
-    for (const Point& p : points)
-    {
-        float distx = std::abs(float(p.x) - float(point.x));
-        float disty = std::abs(float(p.y) - float(point.y));
-
-        if (distx > float(width) / 2.0f)
-            distx = float(width) - distx;
-
-        if (disty > float(width) / 2.0f)
-            disty = float(width) - disty;
-
-        float distSq = distx * distx + disty * disty;
-        if (distSq < minDistSq)
-            minDistSq = distSq;
-    }
-    return true;
-}
-
-static float DistanceSqToClosestPoint(const TPointGrid& grid, size_t cellCount, size_t cellSize, const Point& point, size_t width)
-{
-    const int basex = int(point.x / cellSize);
-    const int basey = int(point.y / cellSize);
-
-    const int maxRadius = int(cellCount / 2);
-
-    float minDistSq = FLT_MAX;
-    bool foundAPoint = false;
-    bool didAnExtraRing = false;
-
-    for (int radius = 0; radius <= maxRadius; ++radius)
-    {
-        // top and bottom rows
-        {
-            for (int offsetX = -radius; offsetX <= radius; ++offsetX)
-            {
-                int x = int(basex + offsetX + cellCount) % int(cellCount);
-
-                int offsetY = -radius;
-                int y = int(basey + offsetY + cellCount) % int(cellCount);
-                foundAPoint |= DistanceSqToClosestPoint(grid[y*cellCount + x], point, minDistSq, width);
-
-                offsetY = radius;
-                y = int(basey + offsetY + cellCount) % int(cellCount);
-                foundAPoint |= DistanceSqToClosestPoint(grid[y*cellCount + x], point, minDistSq, width);
-            }
-        }
-
-        // left and right
-        {
-            for (int offsetY = -radius + 1; offsetY <= radius - 1; ++offsetY)
-            {
-                int y = int(basey + offsetY + cellCount) % int(cellCount);
-
-                int offsetX = -radius;
-                int x = int(basex + offsetX + cellCount) % int(cellCount);
-                foundAPoint |= DistanceSqToClosestPoint(grid[y*cellCount + x], point, minDistSq, width);
-
-                offsetX = +radius;
-                x = int(basex + offsetX + cellCount) % int(cellCount);
-                foundAPoint |= DistanceSqToClosestPoint(grid[y*cellCount + x], point, minDistSq, width);
-            }
-        }
-
-        // we stop when we've found a point, then do another ring to make sure there isn't something closer to what we found.
-        if (foundAPoint)
-        {
-            if (didAnExtraRing)
-                break;
-            else
-                didAnExtraRing = true;
-        }
-    }
-
-    return minDistSq;
-}
-
-static void AddPointToPointGrid(TPointGrid& grid, size_t cellCount, size_t cellSize, const Point& point)
-{
-    Point cell;
-    cell.x = point.x / cellSize;
-    cell.y = point.y / cellSize;
-    grid[cell.y * cellCount + cell.x].push_back(point);
-}
-
-// This replaces "Initial Binary Pattern" and "Phase 1" in the void and cluster algorithm.
-// Initial binary pattern makes blue noise distributed points.
-// Phase 1 makes them be progressive, so any points from 0 to N are blue noise.
-// Mitchell's best candidate algorithm makes progressive blue noise so can be used instead of those 2 steps.
-// https://blog.demofox.org/2017/10/20/generating-blue-noise-sample-points-with-mitchells-best-candidate-algorithm/
-static void MitchellsBestCandidate(std::vector<bool>& binaryPattern, std::vector<size_t>& ranks, size_t width)
-{
-    ScopedTimer timer("Mitchells Best Candidate", false);
-
-    std::mt19937 rng(GetRNGSeed());
-    std::uniform_int_distribution<size_t> dist(0, width*width - 1);
-
-    binaryPattern.resize(width*width, false);
-    ranks.resize(width*width, ~size_t(0));
-
-    static const size_t gridCellCount = 32;
-    TPointGrid grid(gridCellCount*gridCellCount);
-    const size_t gridCellSize = width / gridCellCount;
-
-    size_t ones = size_t(float(width * width)*0.1f);
-    for (size_t i = 0; i < ones; ++i)
-    {
-        printf("\r%i%%", int(100.0f * float(i) / float(ones - 1)));
-
-        // we scale up the candidates each iteration like in the paper, to keep frequency behavior consistent
-        size_t numCandidates = i + 1;
-
-        // keep the candidate that is farthest from the closest existing point
-        float bestDistanceSq = 0.0f;
-        Point best;
-        for (size_t candidate = 0; candidate < numCandidates; ++candidate)
-        {
-            size_t index = dist(rng);
-            Point c;
-            c.x = index % width;
-            c.y = index / width;
-
-            float minDistSq = DistanceSqToClosestPoint(grid, gridCellCount, gridCellSize, c, width);
-
-            if (minDistSq > bestDistanceSq)
-            {
-                bestDistanceSq = minDistSq;
-                best = c;
-            }
-        }
-
-        // take the best candidate
-        binaryPattern[best.y * width + best.x] = true;
-        ranks[best.y * width + best.x] = i;
-        AddPointToPointGrid(grid, gridCellCount, gridCellSize, best);
-    }
-    printf("\n");
-}
 
 // Phase 2: Start with initial binary pattern and add points to the largest void until half the pixels are white, entering ranks for those pixels
 static void Phase2(std::vector<bool>& binaryPattern, std::vector<float>& LUT, std::vector<size_t>& ranks, size_t width, std::mt19937& rng)
@@ -852,7 +956,7 @@ void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool
 	else
 	{
 		// replace initial binary pattern and phase 1 with Mitchell's best candidate algorithm, and then making the LUT
-		MitchellsBestCandidate(initialBinaryPattern, ranks, width);
+		MitchellsBestCandidate(initialBinaryPattern, ranks, width, rng);
 		MakeLUT(initialBinaryPattern, initialLUT, width, true);
 
 		//SaveBinaryPattern(initialBinaryPattern, width, "out/_blah", 0, -1, -1, -1, -1);

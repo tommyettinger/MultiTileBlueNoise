@@ -7,8 +7,10 @@
 
 #define THRESHOLD_SAMPLES() 11 // the number of samples for threshold testing.
 
-#define SAVE_VOIDCLUSTER_INITIALBP() false
+#define SAVE_VOIDCLUSTER_INITIALBP() true
 #define SAVE_VOIDCLUSTER_PHASE1() false
 #define TEST_MASK() true
 
 #define RANDOM_INITIAL() false
+#define VDC_INITIAL() false
+
