@@ -63,6 +63,9 @@ void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* 
     AppendImageHorizontal(noise, noiseSize, noiseSize, noiseDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
 
     sprintf(fileName, "%s.png", baseFileName);
+    stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noise.data(), 0);
+
+    sprintf(fileName, "%s_histo.png", baseFileName);
     stbi_write_png(fileName, int(noiseAndDFT_width), int(noiseAndDFT_height), 1, noiseAndDFT.data(), 0);
 
     TestMask(noise, noiseSize, baseFileName);
@@ -78,10 +81,10 @@ int main(int argc, char** argv)
 
         {
             ScopedTimer timer("Blue noise by void and cluster");
-            GenerateBN_Void_Cluster(noise, c_width, false, "out/blueVC_1");
+            GenerateBN_Void_Cluster(noise, c_width, false, "out/blueTri");
         }
 
-        TestNoise(noise, c_width, "out/blueVC_1");
+        TestNoise(noise, c_width, "out/blueTri");
     }
 
     //// generate blue noise using void and cluster but using mitchell's best candidate instead of initial binary pattern and phase 1

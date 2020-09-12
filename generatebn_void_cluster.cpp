@@ -534,6 +534,16 @@ static void Phase3(std::vector<bool>& binaryPattern, std::vector<float>& LUT, st
     }
     printf("\n");
 }
+// Based off Alan Wolfe's work at https://github.com/Atrix256/TriangularBlueNoise
+// adapted from https://www.shadertoy.com/view/4t2SDh
+double reshape(double rnd)
+{
+    rnd += 0.5;
+    rnd -= (int)rnd;
+    double orig = rnd * 2.0 - 1.0;
+    rnd = (orig == 0.0) ? 0.0 : (orig / sqrt(abs(orig)));
+    return (rnd - (orig > 0.0) + (orig < 0.0)) * 0.5 + 0.5;
+}
 
 void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* baseFileName)
 {
@@ -580,7 +590,8 @@ void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool
     {
         ScopedTimer timer("Converting to U8", false);
         blueNoise.resize(width*width);
+        double fraction = 1.0 / (width * width);
         for (size_t index = 0; index < width*width; ++index)
-            blueNoise[index] = uint8_t(ranks[index] * 256 / (width*width));
+            blueNoise[index] = uint8_t(reshape(ranks[index] * fraction) * 256.0);
     }
 }
