@@ -7,6 +7,8 @@
 
 //#include "scoped_timer.h"
 #include "generatebn_void_cluster.h"
+#include "scoped_timer.h"
+#include "stb/stb_image.h"
 
 
 int main(int argc, char** argv)
@@ -22,7 +24,7 @@ int main(int argc, char** argv)
 
 			GenerateBN_Void_Cluster(noise, c_width, false, "out/blue");
 		}
-		//TestNoise(noise, c_width, "out/blueVC_%i");
+		TestNoise(noise, c_width, "out/blueVC_%i");
 	}
 
     //// generate blue noise using void and cluster but using mitchell's best candidate instead of initial binary pattern and phase 1
@@ -39,7 +41,7 @@ int main(int argc, char** argv)
     //    TestNoise(noise, c_width, "out/blueVC_1M");
     //}
 
-    //// load a blue noise texture
+    // load a blue noise texture
     //{
     //    int width, height, channels;
 
@@ -47,7 +49,7 @@ int main(int argc, char** argv)
 
     //    {
     //        ScopedTimer timer("Blue noise by void and cluster from loading the texture");
-    //        uint8_t* image = stbi_load("bluenoise256.png", &width, &height, &channels, 0);
+    //        uint8_t* image = stbi_load("out/blue_tiled_512.png", &width, &height, &channels, 0);
 
     //        noise.reserve(width*height);
     //        for (int i = 0; i < width*height; ++i)
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
     //        stbi_image_free(image);
     //    }
 
-    //    TestNoise(noise, width, "out/blueVC_2");
+    //    TestNoise(noise, width, "out/blue_tiled");
     //}
 	
 	//system("pause");

@@ -463,10 +463,23 @@ static void MitchellsBestCandidate(std::vector<bool>& binaryPattern, std::vector
 
 	static const size_t gridCellCount = 32;
 	TPointGrid grid(gridCellCount * gridCellCount);
+
 	const size_t gridCellSize = width / gridCellCount;
+	size_t i = 0;
+	for (size_t x = 0; x < width; x++)
+	{
+		for (size_t y = 0; y < width; y++)
+		{
+			if (binaryPattern[x + y * width])
+			{
+				AddPointToPointGrid(grid, gridCellCount, gridCellSize, Point{ x = x, y = y });
+				i++;
+			}
+		}
+	}
 
 	size_t ones = size_t(float(width * width) * 0.1f);
-	for (size_t i = 0; i < ones; ++i)
+	for (; i < ones; ++i)
 	{
 		printf("\r%i%%", int(100.0f * float(i) / float(ones - 1)));
 
@@ -698,7 +711,7 @@ for (size_t x = 0; x < 64; x++)
 {
 	for (size_t y = 0; y < 64; y++)
 	{
-		if (rank2[x + y * 64] > 42)
+		if (rank2[x + y * 64] <= 23 || rank2[x + y * 64] > 59)
 			continue;
 		if (x >= y && x < 63 - y) // bottom edge
 		{
