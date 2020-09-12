@@ -544,10 +544,9 @@ double reshape(double rnd)
     rnd = (orig == 0.0) ? 0.0 : (orig / sqrt(abs(orig)));
     return (rnd - (orig > 0.0) + (orig < 0.0)) * 0.5 + 0.5;
 }
-
+static std::mt19937 rng = std::mt19937(GetRNGSeed());
 void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* baseFileName)
 {
-    std::mt19937 rng(GetRNGSeed());
 
     std::vector<size_t> ranks(width*width, ~size_t(0));
 
