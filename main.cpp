@@ -18,6 +18,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+#include <direct.h>
+
 void TestMask(const std::vector<uint8_t>& noise, size_t noiseSize, const char* baseFileName)
 {
     std::vector<uint8_t> thresholdImage(noise.size());
@@ -75,7 +77,7 @@ int main(int argc, char** argv)
 {
     // generate blue noise using void and cluster
     {
-        static size_t c_width = 128;
+        static size_t c_width = 64;
 
         std::vector<uint8_t> noise;
         char fileName[256];
@@ -83,9 +85,11 @@ int main(int argc, char** argv)
             //ScopedTimer timer("Blue noise by void and cluster");
             //GenerateBN_Void_Cluster(noise, c_width, false, "out/blueTri");
         //}
+        sprintf(fileName, "out/%zd", c_width);
+        _mkdir(fileName);
         for (int i = 0; i < 64; i++)
         {
-            sprintf(fileName, "out/blueTri%zd_%d", c_width, i);
+            sprintf(fileName, "out/%zd/blueTri%zd_%d", c_width, c_width, i);
             GenerateBN_Void_Cluster(noise, c_width, false, fileName);
             TestNoise(noise, c_width, fileName);
         }
