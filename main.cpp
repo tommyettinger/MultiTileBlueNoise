@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 {
     // generate blue noise using void and cluster
     {
-        static size_t c_width = 256;
+        static size_t c_width = 512;
 
         std::vector<uint8_t> noise;
         char fileName[256];
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
         //}
         sprintf(fileName, "out/%zd", c_width);
         _mkdir(fileName);
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < 1; i++)
         {
             sprintf(fileName, "out/%zd/blueTri%zd_%d", c_width, c_width, i);
             GenerateBN_Void_Cluster(noise, c_width, false, fileName);
