@@ -20,6 +20,8 @@
 
 #include <direct.h>
 
+#define HISTOGRAM 0
+
 void TestMask(const std::vector<uint8_t>& noise, size_t noiseSize, const char* baseFileName)
 {
     std::vector<uint8_t> thresholdImage(noise.size());
@@ -53,6 +55,7 @@ void TestMask(const std::vector<uint8_t>& noise, size_t noiseSize, const char* b
 void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* baseFileName)
 {
     char fileName[256];
+#if HISTOGRAM
     sprintf(fileName, "%s.histogram.csv", baseFileName);
 
     WriteHistogram(noise, fileName);
@@ -63,21 +66,22 @@ void TestNoise(const std::vector<uint8_t>& noise, size_t noiseSize, const char* 
     size_t noiseAndDFT_width = 0;
     size_t noiseAndDFT_height = 0;
     AppendImageHorizontal(noise, noiseSize, noiseSize, noiseDFT, noiseSize, noiseSize, noiseAndDFT, noiseAndDFT_width, noiseAndDFT_height);
-
+#endif // HISTOGRAM
     sprintf(fileName, "%s.png", baseFileName);
     stbi_write_png(fileName, int(noiseSize), int(noiseSize), 1, noise.data(), 0);
-
+#if HISTOGRAM
     sprintf(fileName, "%s_histo.png", baseFileName);
     stbi_write_png(fileName, int(noiseAndDFT_width), int(noiseAndDFT_height), 1, noiseAndDFT.data(), 0);
 
     TestMask(noise, noiseSize, baseFileName);
+#endif // HISTOGRAM
 }
 
 int main(int argc, char** argv)
 {
     // generate blue noise using void and cluster
     {
-        static size_t c_width = 1024;
+        static size_t c_width = 64;
 
         std::vector<uint8_t> noise;
         char fileName[256];
@@ -86,11 +90,12 @@ int main(int argc, char** argv)
             //GenerateBN_Void_Cluster(noise, c_width, false, "out/blueTri");
         //}
         sprintf(fileName, "out/%zd", c_width);
+        _mkdir("out");
         _mkdir(fileName);
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 64; i++)
         {
-            sprintf(fileName, "out/%zd/blueTri%zd_%d", c_width, c_width, i);
-            GenerateBN_Void_Cluster(noise, c_width, false, fileName);
+            sprintf(fileName, "out/%zd/blue%zd_%d", c_width, c_width, i);
+            GenerateBN_Void_Cluster(noise, c_width, true, fileName);
             TestNoise(noise, c_width, fileName);
         }
     }

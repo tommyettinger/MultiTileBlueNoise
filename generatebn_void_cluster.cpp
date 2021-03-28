@@ -419,7 +419,7 @@ static void AddPointToPointGrid(TPointGrid& grid, size_t cellCount, size_t cellS
     cell.y = point.y / cellSize;
     grid[cell.y * cellCount + cell.x].push_back(point);
 }
-
+static std::mt19937 rng = std::mt19937(GetRNGSeed());
 // This replaces "Initial Binary Pattern" and "Phase 1" in the void and cluster algorithm.
 // Initial binary pattern makes blue noise distributed points.
 // Phase 1 makes them be progressive, so any points from 0 to N are blue noise.
@@ -429,7 +429,6 @@ static void MitchellsBestCandidate(std::vector<bool>& binaryPattern, std::vector
 {
     ScopedTimer timer("Mitchells Best Candidate", false);
 
-    std::mt19937 rng(GetRNGSeed());
     std::uniform_int_distribution<size_t> dist(0, width*width - 1);
 
     binaryPattern.resize(width*width, false);
@@ -544,7 +543,6 @@ double reshape(double rnd)
     rnd = (orig == 0.0) ? 0.0 : (orig / sqrt(abs(orig)));
     return (rnd - (orig > 0.0) + (orig < 0.0)) * 0.5 + 0.5;
 }
-static std::mt19937 rng = std::mt19937(GetRNGSeed());
 void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool useMitchellsBestCandidate, const char* baseFileName)
 {
 
@@ -589,8 +587,13 @@ void GenerateBN_Void_Cluster(std::vector<uint8_t>& blueNoise, size_t width, bool
     {
         ScopedTimer timer("Converting to U8", false);
         blueNoise.resize(width*width);
-        double fraction = 1.0 / (width * width);
-        for (size_t index = 0; index < width*width; ++index)
-            blueNoise[index] = uint8_t(reshape(ranks[index] * fraction) * 256.0);
+        //// regular blue noise
+        double fraction = 256.0 / (width * width);
+        for (size_t index = 0; index < width * width; ++index)
+            blueNoise[index] = uint8_t(ranks[index] * fraction);
+        //// triangular noise
+//        double fraction = 1.0 / (width * width);
+//        for (size_t index = 0; index < width * width; ++index)
+//            blueNoise[index] = uint8_t(reshape(ranks[index] * fraction) * 256.0);
     }
 }
