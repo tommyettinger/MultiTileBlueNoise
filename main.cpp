@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 {
     // generate blue noise using void and cluster
     {
-        static size_t c_width = 512;
+        static size_t c_width = 1024;
 
         std::vector<uint8_t> noise;
         char fileName[256];
